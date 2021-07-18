@@ -1,3 +1,7 @@
+from kivy.config import Config
+Config.set('graphics', 'width', '900')
+Config.set('graphics', 'height', '400')
+
 from kivy.app import App
 from kivy.graphics import Color, Line
 from kivy.properties import NumericProperty, Clock
@@ -16,6 +20,8 @@ class MainWidget(Widget):
 
     current_offset_y = 0
     speed = 1
+    speed_x = 1
+    current_offset_x = 0
 
     def __init__(self, **kwargs):
         super(MainWidget, self).__init__(**kwargs)
@@ -57,7 +63,8 @@ class MainWidget(Widget):
         # self.line.points = [center_x, 0, center_x, 100]
         offset = -int(self.V_NB_LINES/2) + 0.5
         for i in range(0, self.V_NB_LINES):
-            line_x = int(central_line_x + offset*spacing)
+            line_x = int(central_line_x + offset*spacing + self.current_offset_x)
+            # line_y = i * spacing_y - self.current_offset_y
             x1, y1 = self.transform(line_x, 0)
             x2, y2 = self.transform(line_x, self.height)
             self.vertical_lines[i].points = [x1, y1, x2, y2]
@@ -77,8 +84,8 @@ class MainWidget(Widget):
         # self.line.points = [center_x, 0, center_x, 100]
         offset = -int(self.V_NB_LINES / 2) + 0.5
 
-        xmin = central_line_x+offset*spacing
-        xmax = central_line_x-offset*spacing
+        xmin = central_line_x+offset*spacing + self.current_offset_x
+        xmax = central_line_x-offset*spacing + self.current_offset_x
         spacing_y = self.H_LINES_SPACING * self.height
 
         for i in range(0, self.H_NB_LINES):
@@ -114,10 +121,13 @@ class MainWidget(Widget):
         self.update_vertical_lines()
         self.update_horizontal_lines()
         self.current_offset_y += self.speed * time_factor
+        self.current_offset_x += self.speed_x * time_factor
         spacing_y = self.H_LINES_SPACING * self.height
+        spacing_x = self.V_LINES_SPACING * self.width
         if self.current_offset_y >= spacing_y:
             self.current_offset_y -= spacing_y
-        print("dt: " + str(dt * 60))
+            # self.current_offset_x -= spacing_x SALTO DE LINEAS VERTICALES
+        # print("dt: " + str(dt * 60))
 
 
 class GalaxyApp(App):
