@@ -1,7 +1,10 @@
 from kivy.config import Config
+
 Config.set('graphics', 'width', '900')
 Config.set('graphics', 'height', '400')
 
+from kivy import platform
+from kivy.core.window import Window
 from kivy.app import App
 from kivy.graphics import Color, Line
 from kivy.properties import NumericProperty, Clock
@@ -20,15 +23,31 @@ class MainWidget(Widget):
 
     current_offset_y = 0
     speed = 1
-    speed_x = 1
+    speed_x = 12
+    current_speed_x = 0
     current_offset_x = 0
 
     def __init__(self, **kwargs):
         super(MainWidget, self).__init__(**kwargs)
         self.init_vertical_lines()
         self.init_horizontal_lines()
-        Clock.schedule_interval(self.update, 1/60)
         # print("INIT W:" +str(self.width) + "H:" + str(self.height))
+        if self.is_desktop():
+            self._keyboard = Window.request_keyboard(self.keyboard_closed, self)
+            self._keyboard.bind(on_key_down=self.on_keyboard_down)
+            self._keyboard.bind(on_key_up=self.on_keyboard_up)
+
+        Clock.schedule_interval(self.update, 1 / 60)
+
+    def keyboard_closed(self):
+        self._keyboard.unbind(on_key_down=self.on_keyboard_down)
+        self._keyboard.unbind(on_key_up=self.on_keyboard_up)
+        self._keyboard = None
+
+    def is_desktop(self):
+        if platform in ('linux', 'macosx', 'windows'):
+            return True
+        return False
 
     def on_parent(self, widget, parent):
         # print("ON PARENT W:" + str(self.width) + "H:" + str(self.height))
@@ -110,20 +129,44 @@ class MainWidget(Widget):
         diff_y = self.perspective_point_y - lin_y
 
         factor_y = diff_y / self.perspective_point_y
-        factor_y =  pow(factor_y, 4)
+        factor_y = pow(factor_y, 4)
 
         tr_x = self.perspective_point_x + diff_x * factor_y
         tr_y = (1 - factor_y) * self.perspective_point_y
         return int(tr_x), int(tr_y)
+
+    def on_keyboard_down(self, keyboard, keycode, text, modifiers):
+        if keycode[1] == 'left':
+            self.current_speed_x = self.speed_x
+        elif keycode[1] == 'right':
+            self.current_speed_x = - self.speed_x
+        return True
+
+    def on_keyboard_up(self, keyboard, keycode):
+        self.current_speed_x = 0
+        return True
+
+
+    def on_touch_down(self, touch):
+        if touch.x < self.width/2:
+            ## print("<-")
+            self.current_speed_x = self.speed_x
+        else:
+            # print("->")
+            self.current_speed_x = - self.speed_x
+
+    def on_touch_up(self, touch):
+        print("UP")
+        self.current_speed_x = 0
 
     def update(self, dt):
         time_factor = dt * 60
         self.update_vertical_lines()
         self.update_horizontal_lines()
         self.current_offset_y += self.speed * time_factor
-        self.current_offset_x += self.speed_x * time_factor
+        self.current_offset_x += self.current_speed_x * time_factor
         spacing_y = self.H_LINES_SPACING * self.height
-        spacing_x = self.V_LINES_SPACING * self.width
+        # spacing_x = self.V_LINES_SPACING * self.width
         if self.current_offset_y >= spacing_y:
             self.current_offset_y -= spacing_y
             # self.current_offset_x -= spacing_x SALTO DE LINEAS VERTICALES
