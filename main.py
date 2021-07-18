@@ -110,13 +110,14 @@ class MainWidget(Widget):
         return int(tr_x), int(tr_y)
 
     def update(self, dt):
+        time_factor = dt * 60
         self.update_vertical_lines()
         self.update_horizontal_lines()
-        self.current_offset_y += self.speed
+        self.current_offset_y += self.speed * time_factor
         spacing_y = self.H_LINES_SPACING * self.height
         if self.current_offset_y >= spacing_y:
             self.current_offset_y -= spacing_y
-        # print("aja")
+        print("dt: " + str(dt * 60))
 
 
 class GalaxyApp(App):
