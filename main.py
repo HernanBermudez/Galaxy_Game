@@ -7,11 +7,17 @@ class MainWidget(Widget):
     perspective_point_x = NumericProperty(0)
     perspective_point_y = NumericProperty(0)
     vertical_lines = []
-    V_NB_LINES = 4
+    V_NB_LINES = 10
     V_LINES_SPACING = .1 # porcentaje del ancho de la pantalla
+
+    horizontal_lines = []
+    H_NB_LINES = 8
+    H_LINES_SPACING = .2  # porcentaje del ancho de la pantalla
+
     def __init__(self, **kwargs):
         super(MainWidget, self).__init__(**kwargs)
         self.init_vertical_lines()
+        self.init_horizontal_lines()
         # print("INIT W:" +str(self.width) + "H:" + str(self.height))
 
     def on_parent(self, widget, parent):
@@ -23,6 +29,7 @@ class MainWidget(Widget):
         # self.perspective_point_x = self.width/2
         # self.perspective_point_y = self.height * 0.75
         self.update_vertical_lines()
+        self.update_horizontal_lines()
         pass
 
     def on_perspective_point_x(self, widget, value):
@@ -52,9 +59,33 @@ class MainWidget(Widget):
             self.vertical_lines[i].points = [x1, y1, x2, y2]
             offset += 1
 
+    def init_horizontal_lines(self):
+        with self.canvas:
+            Color(1, 1, 1)
+            # self.line = Line(points = [100, 0, 100, 100])
+            for i in range(0, self.H_NB_LINES):
+                self.horizontal_lines.append(Line())
+
+    def update_horizontal_lines(self):
+
+        central_line_x = int(self.width / 2)
+        spacing = self.V_LINES_SPACING * self.width
+        # self.line.points = [center_x, 0, center_x, 100]
+        offset = -int(self.V_NB_LINES / 2) + 0.5
+
+        xmin = central_line_x+offset*spacing
+        xmax = central_line_x-offset*spacing
+        spacing_y = self.H_LINES_SPACING * self.height
+
+        for i in range(0, self.H_NB_LINES):
+            line_y = i*self.H_LINES_SPACING*self.height
+            x1, y1 = self.transform(xmin, line_y)
+            x2, y2 = self.transform(xmax, line_y)
+            self.horizontal_lines[i].points = [x1, y1, x2, y2]
+
     def transform(self, x, y):
-        return self.transform_2D(x, y)
-        # return self.transform_perspective(x, y)
+        # return self.transform_2D(x, y)
+        return self.transform_perspective(x, y)
 
     def transform_2D(self, x, y):
         return int(x), int(y)
