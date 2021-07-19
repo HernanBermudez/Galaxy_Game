@@ -12,23 +12,23 @@ from kivy.graphics import Color, Line, Quad, Triangle
 from kivy.properties import NumericProperty, Clock
 from kivy.uix.widget import Widget
 
-class MainWidget(Widget):
 
+class MainWidget(Widget):
     from transforms import transform, transform_2D, transform_perspective
     from user_actions import on_keyboard_down, on_keyboard_up, on_touch_down, on_touch_up, keyboard_closed
     perspective_point_x = NumericProperty(0)
     perspective_point_y = NumericProperty(0)
     vertical_lines = []
     V_NB_LINES = 8
-    V_LINES_SPACING = .2 # porcentaje del ancho de la pantalla
+    V_LINES_SPACING = .2  # porcentaje del ancho de la pantalla
 
     horizontal_lines = []
     H_NB_LINES = 8
-    H_LINES_SPACING = .1  # porcentaje del ancho de la pantalla
+    H_LINES_SPACING = .2  # porcentaje del ancho de la pantalla
 
     current_offset_y = 0
-    speed = 1
-    speed_x = 12
+    speed = .5
+    speed_x = 1.5
     current_speed_x = 0
     current_offset_x = 0
     current_y_loop = 0
@@ -41,9 +41,12 @@ class MainWidget(Widget):
     SHIP_HEIGHT = 0.035
     SHIP_BASE_Y = 0.04
     ship = None
+    ship_coordinates = [(0, 0), (0, 0), (0, 0)]
 
     def __init__(self, **kwargs):
         super(MainWidget, self).__init__(**kwargs)
+        Clock.schedule_interval(self.update, 1 / 60)
+
         self.init_vertical_lines()
         self.init_horizontal_lines()
         self.init_tiles()
@@ -55,8 +58,6 @@ class MainWidget(Widget):
             self._keyboard = Window.request_keyboard(self.keyboard_closed, self)
             self._keyboard.bind(on_key_down=self.on_keyboard_down)
             self._keyboard.bind(on_key_up=self.on_keyboard_up)
-
-        Clock.schedule_interval(self.update, 1 / 60)
 
     def is_desktop(self):
         if platform in ('linux', 'macosx', 'windows'):
@@ -78,19 +79,42 @@ class MainWidget(Widget):
         #    2
         # 1     3
         # self.transform
-        x1, y1 = self.transform(center_x - ship_half_width, base_y )
-        x2, y2 = self.transform(center_x, base_y + ship_height)
-        x3, y3 = self.transform(center_x + ship_half_width, base_y)
+        self.ship_coordinates[0] = (center_x - ship_half_width, base_y)
+        self.ship_coordinates[1] = (center_x, base_y + ship_height)
+        self.ship_coordinates[2] = (center_x + ship_half_width, base_y)
+
+        x1, y1 = self.transform(*self.ship_coordinates[0])
+        x2, y2 = self.transform(*self.ship_coordinates[1])
+        x3, y3 = self.transform(*self.ship_coordinates[2])
+
         self.ship.points = [x1, y1, x2, y2, x3, y3]
+
+    def check_ship_collision(self):
+        for i in range(0, len(self.tiles_coordinates)):
+            ti_x, ti_y = self.tiles_coordinates[i]
+            if ti_y > self.current_y_loop + 1:
+                return False
+            if self.check_ship_collision_with_tile(ti_x, ti_x):
+                return True
+        return False
+
+    def check_ship_collision_with_tile(self, ti_x, ti_y):
+        xmin, ymin = self.get_tile_coordinates(ti_x, ti_y)
+        xmax, ymax = self.get_tile_coordinates(ti_x + 1, ti_y + 1)
+        for i in range(0, 3):
+            px, py = self.ship_coordinates[i]
+            if xmin <= px <= xmax and ymin <= py <= ymax:
+                return True
+        return False
 
     def init_tiles(self):
         with self.canvas:
             Color(1, 1, 1)
-            for i in range (0, self.NB_TILES):
+            for i in range(0, self.NB_TILES):
                 self.tiles.append(Quad())
 
     def pre_fill_tiles_coordinates(self):
-        for i in range (0,10):
+        for i in range(0, 10):
             self.tiles_coordinates.append((0, i))
         # 10 casillas en una columna seguida
 
@@ -98,7 +122,7 @@ class MainWidget(Widget):
 
         last_x = 0
         last_y = 0
-        for i in range (len(self.tiles_coordinates) - 1, -1, -1):
+        for i in range(len(self.tiles_coordinates) - 1, -1, -1):
             if self.tiles_coordinates[i][1] < self.current_y_loop:
                 del self.tiles_coordinates[i]
 
@@ -146,7 +170,7 @@ class MainWidget(Widget):
         central_line_x = self.perspective_point_x
         spacing = self.V_LINES_SPACING * self.width
         offset = index - 0.5
-        line_x = central_line_x + offset*spacing + self.current_offset_x
+        line_x = central_line_x + offset * spacing + self.current_offset_x
         return line_x
 
     def get_line_y_from_index(self, index):
@@ -161,7 +185,7 @@ class MainWidget(Widget):
         return x, y
 
     def update_tiles(self):
-        for i in range (0, self.NB_TILES):
+        for i in range(0, self.NB_TILES):
             tile = self.tiles[i]
             tile_coordinate = self.tiles_coordinates[i]
             xmin, ymin = self.get_tile_coordinates(tile_coordinate[0], tile_coordinate[1])
@@ -176,7 +200,7 @@ class MainWidget(Widget):
             tile.points = [x1, y1, x2, y2, x3, y3, x4, y4]
 
     def update_vertical_lines(self):
-        start_index = -int(self.V_NB_LINES/2) + 1
+        start_index = -int(self.V_NB_LINES / 2) + 1
         for i in range(start_index, start_index + self.V_NB_LINES):
             line_x = self.get_line_x_from_index(i)
             # line_y = i * spacing_y - self.current_offset_y
@@ -209,8 +233,13 @@ class MainWidget(Widget):
         self.update_horizontal_lines()
         self.update_tiles()
         self.update_ship()
-        self.current_offset_y += self.speed * time_factor
-        self.current_offset_x += self.current_speed_x * time_factor
+
+        speed_y = self.speed * self.height
+        self.current_offset_y += speed_y * time_factor / 100
+
+        speed_x = self.current_speed_x * self.width / 100
+        self.current_offset_x += speed_x * time_factor
+
         spacing_y = self.H_LINES_SPACING * self.height
         # spacing_x = self.V_LINES_SPACING * self.width
         if self.current_offset_y >= spacing_y:
@@ -220,6 +249,9 @@ class MainWidget(Widget):
             print("loop: " + str(self.current_y_loop))
             # self.current_offset_x -= spacing_x SALTO DE LINEAS VERTICALES
         # print("dt: " + str(dt * 60))
+
+        if not self.check_ship_collision():
+            print("GAME OVER")
 
 
 class GalaxyApp(App):
