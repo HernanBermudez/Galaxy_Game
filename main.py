@@ -60,7 +60,7 @@ class MainWidget(Widget):
             self._keyboard.bind(on_key_up=self.on_keyboard_up)
 
     def is_desktop(self):
-        if platform in ('linux', 'macosx', 'windows'):
+        if platform in ('linux', 'macosx', 'win'):
             return True
         return False
 
@@ -75,7 +75,6 @@ class MainWidget(Widget):
         base_y = self.SHIP_BASE_Y * self.height
         ship_half_width = self.SHIP_WIDTH * self.width / 2
         ship_height = self.SHIP_HEIGHT * self.height
-
         #    2
         # 1     3
         # self.transform
@@ -94,7 +93,7 @@ class MainWidget(Widget):
             ti_x, ti_y = self.tiles_coordinates[i]
             if ti_y > self.current_y_loop + 1:
                 return False
-            if self.check_ship_collision_with_tile(ti_x, ti_x):
+            if self.check_ship_collision_with_tile(ti_x, ti_y):
                 return True
         return False
 
